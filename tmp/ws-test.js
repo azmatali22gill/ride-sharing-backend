@@ -1,12 +1,11 @@
 const io = require("socket.io-client");
 
 const socket = io("http://localhost:3002", {
-  // ← Port changed to 3002
-  // path: "/realtime",   // ← Uncomment only if your backend uses custom path
+ 
 });
 
 const DRIVER_ID = "6a66d1f4123443371b023194";
-const RIDE_ID = "6a66d244123443371b02319f"; // ← Make sure this is the correct current ride ID
+const RIDE_ID = "6a66d244123443371b02319f"; 
 
 socket.on("connect", () => {
   console.log("✅ WebSocket Connected! ID:", socket.id);
@@ -50,7 +49,6 @@ socket.on("disconnect", () => {
   console.log("❌ Disconnected");
 });
 
-// Location update after 2 seconds
 setTimeout(() => {
   socket.emit("driver:location", {
     driverId: DRIVER_ID,

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { RideType } from '../common/enums/ride.enum';
+import { Injectable } from "@nestjs/common";
+import { RideType } from "../common/enums/ride.enum";
 
 export interface FareBreakdown {
   baseFare: number;
@@ -11,9 +11,10 @@ export interface FareBreakdown {
   currency: string;
 }
 
-// Per-ride-type pricing configuration. In a production system this would
-// live in the database / a pricing admin panel rather than in code.
-const RIDE_TYPE_CONFIG: Record<RideType, { base: number; perKm: number; perMin: number; multiplier: number }> = {
+const RIDE_TYPE_CONFIG: Record<
+  RideType,
+  { base: number; perKm: number; perMin: number; multiplier: number }
+> = {
   [RideType.ECONOMY]: { base: 80, perKm: 25, perMin: 3, multiplier: 1.0 },
   [RideType.COMFORT]: { base: 120, perKm: 32, perMin: 4, multiplier: 1.2 },
   [RideType.PREMIUM]: { base: 180, perKm: 45, perMin: 6, multiplier: 1.5 },
@@ -24,10 +25,6 @@ const MINIMUM_FARE = 100;
 
 @Injectable()
 export class FareService {
-  /**
-   * Estimates fare before a ride starts. surgeMultiplier defaults to 1 (no surge)
-   * but can be supplied by a demand-based surge engine.
-   */
   estimateFare(
     distanceKm: number,
     durationMinutes: number,
@@ -41,7 +38,10 @@ export class FareService {
     const timeCost = Math.round(durationMinutes * config.perMin);
 
     const subtotal = (baseFare + distanceCost + timeCost) * config.multiplier;
-    const total = Math.max(Math.round(subtotal * surgeMultiplier), MINIMUM_FARE);
+    const total = Math.max(
+      Math.round(subtotal * surgeMultiplier),
+      MINIMUM_FARE,
+    );
 
     return {
       baseFare,
@@ -50,15 +50,14 @@ export class FareService {
       surgeMultiplier,
       subtotal: Math.round(subtotal),
       total,
-      currency: 'PKR',
+      currency: "PKR",
     };
   }
 
-  /**
-   * Simple surge estimator based on ratio of pending ride requests to
-   * currently available drivers in an area. Caps surge at 3x.
-   */
-  calculateSurgeMultiplier(pendingRequests: number, availableDrivers: number): number {
+  calculateSurgeMultiplier(
+    pendingRequests: number,
+    availableDrivers: number,
+  ): number {
     if (availableDrivers <= 0) return 3;
     const ratio = pendingRequests / availableDrivers;
     if (ratio <= 1) return 1;

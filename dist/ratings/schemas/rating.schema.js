@@ -17,7 +17,7 @@ let Rating = class Rating {
 };
 exports.Rating = Rating;
 __decorate([
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Ride', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: "Ride", required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Rating.prototype, "rideId", void 0);
 __decorate([

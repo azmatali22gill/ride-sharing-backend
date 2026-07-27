@@ -1,5 +1,5 @@
-import { Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { Logger } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,8 +8,8 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+} from "@nestjs/websockets";
+import { Server, Socket } from "socket.io";
 
 interface DriverLocationPayload {
   driverId: string;
@@ -26,23 +26,16 @@ interface RegisterDriverPayload {
   driverId: string;
 }
 
-/**
- * Real-time layer for the platform:
- *  - Drivers connect and register with their driverId, then stream location.
- *  - Passengers (and drivers) join a `ride:{rideId}` room to receive
- *    location updates and ride-status events for that specific ride.
- *  - Ride lifecycle events emitted by RidesService (via EventEmitter2) are
- *    forwarded here to the right socket room, decoupling REST logic from WS.
- */
 @WebSocketGateway({
-  cors: { origin: '*' },
-  namespace: '/realtime',
+  cors: { origin: "*" },
+  namespace: "/realtime",
 })
-export class LocationGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class LocationGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer() server!: Server;
 
   private readonly logger = new Logger(LocationGateway.name);
-  // Maps driverId -> socket.id so we can push a ride offer directly to that driver
   private readonly driverSockets = new Map<string, string>();
 
   handleConnection(client: Socket) {
@@ -56,30 +49,38 @@ export class LocationGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  @SubscribeMessage('driver:register')
-  registerDriver(@ConnectedSocket() client: Socket, @MessageBody() payload: RegisterDriverPayload) {
+  @SubscribeMessage("driver:register")
+  registerDriver(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: RegisterDriverPayload,
+  ) {
     this.driverSockets.set(payload.driverId, client.id);
     client.join(`driver:${payload.driverId}`);
-    return { status: 'ok' };
+    return { status: "ok" };
   }
 
-  @SubscribeMessage('ride:join')
-  joinRide(@ConnectedSocket() client: Socket, @MessageBody() payload: JoinRidePayload) {
+  @SubscribeMessage("ride:join")
+  joinRide(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: JoinRidePayload,
+  ) {
     client.join(`ride:${payload.rideId}`);
-    return { status: 'ok' };
+    return { status: "ok" };
   }
 
-  @SubscribeMessage('ride:leave')
-  leaveRide(@ConnectedSocket() client: Socket, @MessageBody() payload: JoinRidePayload) {
+  @SubscribeMessage("ride:leave")
+  leaveRide(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: JoinRidePayload,
+  ) {
     client.leave(`ride:${payload.rideId}`);
-    return { status: 'ok' };
+    return { status: "ok" };
   }
 
-  /** Driver streams their live GPS position; broadcast instantly to the ride room. */
-  @SubscribeMessage('driver:location')
+  @SubscribeMessage("driver:location")
   handleDriverLocation(@MessageBody() payload: DriverLocationPayload) {
     if (payload.rideId) {
-      this.server.to(`ride:${payload.rideId}`).emit('driver:location', {
+      this.server.to(`ride:${payload.rideId}`).emit("driver:location", {
         driverId: payload.driverId,
         lat: payload.lat,
         lng: payload.lng,
@@ -88,35 +89,43 @@ export class LocationGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
   }
 
-  // ---- Ride lifecycle events forwarded from RidesService ----
-
-  @OnEvent('ride.dispatch')
-  onRideDispatch({ driverId, ride }: { driverId: string; ride: Record<string, unknown> }) {
-    this.server.to(`driver:${driverId}`).emit('ride:offer', ride);
+  @OnEvent("ride.dispatch")
+  onRideDispatch({
+    driverId,
+    ride,
+  }: {
+    driverId: string;
+    ride: Record<string, unknown>;
+  }) {
+    this.server.to(`driver:${driverId}`).emit("ride:offer", ride);
   }
 
-  @OnEvent('ride.accepted')
-  onRideAccepted(payload: { rideId: string; driverId: string; passengerId: string }) {
-    this.server.to(`ride:${payload.rideId}`).emit('ride:accepted', payload);
+  @OnEvent("ride.accepted")
+  onRideAccepted(payload: {
+    rideId: string;
+    driverId: string;
+    passengerId: string;
+  }) {
+    this.server.to(`ride:${payload.rideId}`).emit("ride:accepted", payload);
   }
 
-  @OnEvent('ride.status_changed')
+  @OnEvent("ride.status_changed")
   onRideStatusChanged(payload: { rideId: string; status: string }) {
-    this.server.to(`ride:${payload.rideId}`).emit('ride:status', payload);
+    this.server.to(`ride:${payload.rideId}`).emit("ride:status", payload);
   }
 
-  @OnEvent('ride.completed')
+  @OnEvent("ride.completed")
   onRideCompleted(payload: { rideId: string }) {
-    this.server.to(`ride:${payload.rideId}`).emit('ride:completed', payload);
+    this.server.to(`ride:${payload.rideId}`).emit("ride:completed", payload);
   }
 
-  @OnEvent('ride.cancelled')
+  @OnEvent("ride.cancelled")
   onRideCancelled(payload: { rideId: string; cancelledBy: string }) {
-    this.server.to(`ride:${payload.rideId}`).emit('ride:cancelled', payload);
+    this.server.to(`ride:${payload.rideId}`).emit("ride:cancelled", payload);
   }
 
-  @OnEvent('ride.expired')
+  @OnEvent("ride.expired")
   onRideExpired(payload: { rideId: string; passengerId: string }) {
-    this.server.to(`ride:${payload.rideId}`).emit('ride:expired', payload);
+    this.server.to(`ride:${payload.rideId}`).emit("ride:expired", payload);
   }
 }

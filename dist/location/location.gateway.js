@@ -36,19 +36,19 @@ let LocationGateway = LocationGateway_1 = class LocationGateway {
     registerDriver(client, payload) {
         this.driverSockets.set(payload.driverId, client.id);
         client.join(`driver:${payload.driverId}`);
-        return { status: 'ok' };
+        return { status: "ok" };
     }
     joinRide(client, payload) {
         client.join(`ride:${payload.rideId}`);
-        return { status: 'ok' };
+        return { status: "ok" };
     }
     leaveRide(client, payload) {
         client.leave(`ride:${payload.rideId}`);
-        return { status: 'ok' };
+        return { status: "ok" };
     }
     handleDriverLocation(payload) {
         if (payload.rideId) {
-            this.server.to(`ride:${payload.rideId}`).emit('driver:location', {
+            this.server.to(`ride:${payload.rideId}`).emit("driver:location", {
                 driverId: payload.driverId,
                 lat: payload.lat,
                 lng: payload.lng,
@@ -56,23 +56,23 @@ let LocationGateway = LocationGateway_1 = class LocationGateway {
             });
         }
     }
-    onRideDispatch({ driverId, ride }) {
-        this.server.to(`driver:${driverId}`).emit('ride:offer', ride);
+    onRideDispatch({ driverId, ride, }) {
+        this.server.to(`driver:${driverId}`).emit("ride:offer", ride);
     }
     onRideAccepted(payload) {
-        this.server.to(`ride:${payload.rideId}`).emit('ride:accepted', payload);
+        this.server.to(`ride:${payload.rideId}`).emit("ride:accepted", payload);
     }
     onRideStatusChanged(payload) {
-        this.server.to(`ride:${payload.rideId}`).emit('ride:status', payload);
+        this.server.to(`ride:${payload.rideId}`).emit("ride:status", payload);
     }
     onRideCompleted(payload) {
-        this.server.to(`ride:${payload.rideId}`).emit('ride:completed', payload);
+        this.server.to(`ride:${payload.rideId}`).emit("ride:completed", payload);
     }
     onRideCancelled(payload) {
-        this.server.to(`ride:${payload.rideId}`).emit('ride:cancelled', payload);
+        this.server.to(`ride:${payload.rideId}`).emit("ride:cancelled", payload);
     }
     onRideExpired(payload) {
-        this.server.to(`ride:${payload.rideId}`).emit('ride:expired', payload);
+        this.server.to(`ride:${payload.rideId}`).emit("ride:expired", payload);
     }
 };
 exports.LocationGateway = LocationGateway;
@@ -81,7 +81,7 @@ __decorate([
     __metadata("design:type", socket_io_1.Server)
 ], LocationGateway.prototype, "server", void 0);
 __decorate([
-    (0, websockets_1.SubscribeMessage)('driver:register'),
+    (0, websockets_1.SubscribeMessage)("driver:register"),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
@@ -89,7 +89,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "registerDriver", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)('ride:join'),
+    (0, websockets_1.SubscribeMessage)("ride:join"),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
@@ -97,7 +97,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "joinRide", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)('ride:leave'),
+    (0, websockets_1.SubscribeMessage)("ride:leave"),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
@@ -105,52 +105,52 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "leaveRide", null);
 __decorate([
-    (0, websockets_1.SubscribeMessage)('driver:location'),
+    (0, websockets_1.SubscribeMessage)("driver:location"),
     __param(0, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "handleDriverLocation", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)('ride.dispatch'),
+    (0, event_emitter_1.OnEvent)("ride.dispatch"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "onRideDispatch", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)('ride.accepted'),
+    (0, event_emitter_1.OnEvent)("ride.accepted"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "onRideAccepted", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)('ride.status_changed'),
+    (0, event_emitter_1.OnEvent)("ride.status_changed"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "onRideStatusChanged", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)('ride.completed'),
+    (0, event_emitter_1.OnEvent)("ride.completed"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "onRideCompleted", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)('ride.cancelled'),
+    (0, event_emitter_1.OnEvent)("ride.cancelled"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "onRideCancelled", null);
 __decorate([
-    (0, event_emitter_1.OnEvent)('ride.expired'),
+    (0, event_emitter_1.OnEvent)("ride.expired"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LocationGateway.prototype, "onRideExpired", null);
 exports.LocationGateway = LocationGateway = LocationGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
-        cors: { origin: '*' },
-        namespace: '/realtime',
+        cors: { origin: "*" },
+        namespace: "/realtime",
     })
 ], LocationGateway);
 //# sourceMappingURL=location.gateway.js.map

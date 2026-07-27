@@ -31,7 +31,7 @@ let FareService = class FareService {
             surgeMultiplier,
             subtotal: Math.round(subtotal),
             total,
-            currency: 'PKR',
+            currency: "PKR",
         };
     }
     calculateSurgeMultiplier(pendingRequests, availableDrivers) {
