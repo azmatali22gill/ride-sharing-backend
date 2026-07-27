@@ -54,7 +54,7 @@ __decorate([
     __metadata("design:type", Number)
 ], FareSnapshot.prototype, "total", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ default: 'PKR' }),
+    (0, mongoose_1.Prop)({ default: "PKR" }),
     __metadata("design:type", String)
 ], FareSnapshot.prototype, "currency", void 0);
 FareSnapshot = __decorate([
@@ -65,11 +65,11 @@ let Ride = class Ride {
 };
 exports.Ride = Ride;
 __decorate([
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Passenger', required: true }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: "Passenger", required: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Ride.prototype, "passengerId", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'Driver', default: null }),
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: "Driver", default: null }),
     __metadata("design:type", Object)
 ], Ride.prototype, "driverId", void 0);
 __decorate([
@@ -105,7 +105,7 @@ __decorate([
     __metadata("design:type", String)
 ], Ride.prototype, "status", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ type: [mongoose_2.Types.ObjectId], ref: 'Driver', default: [] }),
+    (0, mongoose_1.Prop)({ type: [mongoose_2.Types.ObjectId], ref: "Driver", default: [] }),
     __metadata("design:type", Array)
 ], Ride.prototype, "rejectedDriverIds", void 0);
 __decorate([

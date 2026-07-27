@@ -12,7 +12,7 @@ async function bootstrap() {
         transform: true,
     }));
     app.enableCors({ origin: "*" });
-    const port = process.env.PORT ?? 3002;
+    const port = process.env.PORT ?? 3010;
     await app.listen(port);
     console.log(`Ride-sharing backend running on http://localhost:${port}`);
     console.log(`WebSocket namespace: ws://localhost:${port}/realtime`);
