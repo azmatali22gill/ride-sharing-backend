@@ -1,0 +1,529 @@
+===================================================================
+COMPLETE TEST FLOW - RIDE SHARING BACKEND
+(API Testing with curl + WebSocket + Dummy Data)
+===================================================================
+
+PEHLE SERVER START KARO:
+=========================
+npm run start:dev
+
+Server chalega: http://localhost:3010
+WebSocket: ws://localhost:3010/realtime
+
+
+===================================================================
+STEP 1: PASSENGER REGISTER KARO
+===================================================================
+curl -X POST http://localhost:3010/passengers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ali Raza",
+    "email": "ali@email.com",
+    "phone": "03001234567"
+  }'
+
+RESPONSE (id note karo - ye passengerId hai):
+{
+  "name": "Ali Raza",
+  "email": "ali@email.com",
+  "phone": "03001234567",
+  "ratingAverage": 0,
+  "ratingCount": 0,
+  "totalRidesTaken": 0,
+  "totalSpent": 0,
+  "_id": "PASSENGER_ID_YAHAN_HOGA",
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+
+
+===================================================================
+STEP 2: DRIVER ONBOARD KARO
+===================================================================
+curl -X POST http://localhost:3010/drivers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ahmed Khan",
+    "email": "ahmed@email.com",
+    "phone": "03007654321",
+    "age": 28,
+    "gender": "Male",
+    "vehicle": {
+      "make": "Toyota",
+      "model": "Corolla",
+      "color": "White",
+      "plateNumber": "LEA-1234",
+      "capacity": 4,
+      "category": "ECONOMY"
+    }
+  }'
+
+RESPONSE (id note karo - ye driverId hai):
+{
+  "name": "Ahmed Khan",
+  "status": "OFFLINE",
+  "verificationStatus": "PENDING",
+  "vehicle": { ... },
+  "_id": "DRIVER_ID_YAHAN_HOGA",
+  ...
+}
+
+
+===================================================================
+STEP 3: DRIVER VERIFY KARO (ADMIN APPROVAL)
+===================================================================
+curl -X PATCH http://localhost:3010/drivers/DRIVER_ID/verification \
+  -H "Content-Type: application/json" \
+  -d '{
+    "verificationStatus": "VERIFIED"
+  }'
+
+
+===================================================================
+STEP 4: DRIVER KO ONLINE/AVAILABLE KARO
+===================================================================
+curl -X PATCH http://localhost:3010/drivers/DRIVER_ID/status \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "AVAILABLE"
+  }'
+
+RESPONSE: driver ka status "AVAILABLE" ho jana chahiye
+
+
+===================================================================
+STEP 5: DRIVER LOCATION UPDATE KARO
+===================================================================
+curl -X PATCH http://localhost:3010/drivers/DRIVER_ID/location \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lat": 24.8607,
+    "lng": 67.0011
+  }'
+
+(Rashid Minhas Road, Karachi - dummy location)
+
+
+===================================================================
+STEP 6: NEARBY DRIVERS CHECK KARO
+===================================================================
+curl "http://localhost:3010/drivers/nearby?lat=24.8600&lng=67.0000&radiusKm=5"
+
+RESPONSE: driver list me aapka driver aana chahiye
+
+
+===================================================================
+STEP 7: RIDE REQUEST KARO (PASSENGER KI TARAF SE)
+===================================================================
+curl -X POST http://localhost:3010/rides \
+  -H "Content-Type: application/json" \
+  -d '{
+    "passengerId": "PASSENGER_ID",
+    "pickupLocation": {
+      "lat": 24.8607,
+      "lng": 67.0011,
+      "address": "Rashid Minhas Road, Karachi"
+    },
+    "destination": {
+      "lat": 24.8918,
+      "lng": 67.0297,
+      "address": "DHA Phase 2, Karachi"
+    },
+    "rideType": "ECONOMY"
+  }'
+
+RESPONSE (Ride ID note karo):
+{
+  "passengerId": "...",
+  "status": "REQUESTED",
+  "estimatedDistanceKm": "...",
+  "estimatedDurationMinutes": "...",
+  "estimatedFare": {
+    "baseFare": 80,
+    "distanceCost": ...,
+    "timeCost": ...,
+    "surgeMultiplier": 1,
+    "total": ...,
+    "currency": "PKR"
+  },
+  "_id": "RIDE_ID_YAHAN_HOGA",
+  ...
+}
+
+
+===================================================================
+WEBSOCKET TESTING - DRIVER KO RIDE OFFER RECEIVE HOGA
+===================================================================
+Ab hum WebSocket test karenge. Iske liye ek alag terminal mein
+Node.js script chalayenge.
+
+Pehle ye file banao: /tmp/ws-test.js
+
+COPY-PASTA KARO YEH CODE:
+
+===================================================================
+const io = require("socket.io-client");
+const socket = io("http://localhost:3010/realtime");
+
+const DRIVER_ID = "DRIVER_ID";  // <-- YAHAN APNA DRIVER_ID LAGAO
+const RIDE_ID = "RIDE_ID";      // <-- YAHAN APNA RIDE_ID LAGAO
+
+socket.on("connect", () => {
+  console.log("✅ WebSocket Connected!");
+
+  // Driver register karwao
+  socket.emit("driver:register", { driverId: DRIVER_ID });
+  console.log("📤 Sent: driver:register");
+
+  // Ride room join karo
+  socket.emit("ride:join", { rideId: RIDE_ID });
+  console.log("📤 Sent: ride:join");
+});
+
+// Server se aane wale events suno:
+socket.on("ride:offer", (data) => {
+  console.log("📩 Received ride:offer →", JSON.stringify(data, null, 2));
+});
+
+socket.on("ride:accepted", (data) => {
+  console.log("📩 Received ride:accepted →", data);
+});
+
+socket.on("ride:status", (data) => {
+  console.log("📩 Received ride:status →", data);
+});
+
+socket.on("ride:completed", (data) => {
+  console.log("📩 Received ride:completed →", data);
+});
+
+socket.on("ride:cancelled", (data) => {
+  console.log("📩 Received ride:cancelled →", data);
+});
+
+socket.on("ride:expired", (data) => {
+  console.log("📩 Received ride:expired →", data);
+});
+
+socket.on("disconnect", () => {
+  console.log("❌ Disconnected");
+});
+
+// Driver location update bhejne ke liye (simulate GPS):
+setTimeout(() => {
+  socket.emit("driver:location", {
+    driverId: DRIVER_ID,
+    rideId: RIDE_ID,
+    lat: 24.8610,
+    lng: 67.0015
+  });
+  console.log("📤 Sent: driver:location update");
+}, 2000);
+
+===================================================================
+
+ISKO RUN KARO (terminal #2 mein):
+===================================
+node /tmp/ws-test.js
+
+
+===================================================================
+STEP 8: DRIVER RIDE ACCEPT KARE
+===================================================================
+curl -X PATCH http://localhost:3010/rides/RIDE_ID/accept \
+  -H "Content-Type: application/json" \
+  -d '{
+    "driverId": "DRIVER_ID"
+  }'
+
+RESPONSE: status "ACCEPTED" hona chahiye
+WebSocket par "ride:accepted" event aayega
+
+
+===================================================================
+STEP 9: DRIVER ARRIVING (PASSY POHUCH GAYA)
+===================================================================
+curl -X PATCH http://localhost:3010/rides/RIDE_ID/arriving \
+  -H "Content-Type: application/json" \
+  -d '{
+    "driverId": "DRIVER_ID"
+  }'
+
+RESPONSE: status "ARRIVING"
+
+
+===================================================================
+STEP 10: RIDE START KARO
+===================================================================
+curl -X PATCH http://localhost:3010/rides/RIDE_ID/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "driverId": "DRIVER_ID"
+  }'
+
+RESPONSE: status "STARTED"
+
+
+===================================================================
+STEP 11: RIDE COMPLETE KARO
+===================================================================
+curl -X PATCH http://localhost:3010/rides/RIDE_ID/complete \
+  -H "Content-Type: application/json" \
+  -d '{
+    "driverId": "DRIVER_ID"
+  }'
+
+RESPONSE: status "COMPLETED"
+Driver release ho jayega (AVAILABLE), earnings update hongi
+
+
+===================================================================
+STEP 12: RATING SUBMIT KARO (PASSENGER NE DRIVER KO RATE KIA)
+===================================================================
+curl -X POST http://localhost:3010/ratings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rideId": "RIDE_ID",
+    "raterType": "PASSENGER",
+    "fromUserId": "PASSENGER_ID",
+    "toUserId": "DRIVER_ID",
+    "rating": 5,
+    "review": "Excellent driver, very professional!"
+  }'
+
+RESPONSE: rating create ho jayegi
+Driver ka ratingAverage update ho jayega
+
+
+===================================================================
+STEP 13: RIDE HISTORY CHECK KARO
+===================================================================
+# Passenger ki history:
+curl http://localhost:3010/rides/history/passenger/PASSENGER_ID
+
+# Driver ki history:
+curl http://localhost:3010/rides/history/driver/DRIVER_ID
+
+# Rating check karo:
+curl http://localhost:3010/ratings/ride/RIDE_ID
+
+
+===================================================================
+BONUS: CANCEL FLOW TEST (AGAR KAREIN TO)
+===================================================================
+Agar complete nahi karna aur cancel karna hai to:
+
+curl -X PATCH http://localhost:3010/rides/RIDE_ID/cancel \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cancelledBy": "PASSENGER",
+    "reason": "Changed my mind"
+  }'
+
+RESPONSE: status "CANCELLED"
+Driver release ho jayega
+
+
+===================================================================
+REJECT FLOW TEST (AGAR KAREIN TO):
+===================================================================
+Pahle ek aur driver onboard karo, phir:
+
+curl -X PATCH http://localhost:3010/rides/RIDE_ID/reject \
+  -H "Content-Type: application/json" \
+  -d '{
+    "driverId": "DRIVER_ID"
+  }'
+
+Next nearest driver ko dispatch ho jayega
+
+
+===================================================================
+SAB KO EK SATH TEST KARNE KE LIYE (AUTO SCRIPT)
+===================================================================
+Yeh ek shell script hai jo sab kuch ek saath kar degi:
+
+/tmp/full-test.sh file banao:
+
+===================================================================
+#!/bin/bash
+
+BASE="http://localhost:3010"
+
+echo "=== 1. Passenger Register ==="
+PASS=$(curl -s -X POST $BASE/passengers \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ali Raza","email":"ali@test.com","phone":"03001234567"}')
+echo $PASS | grep -o '"_id":"[^"]*"'
+PASS_ID=$(echo $PASS | grep -o '"_id":"[^"]*"' | cut -d'"' -f4)
+echo "PASSENGER_ID: $PASS_ID"
+
+echo ""
+echo "=== 2. Driver Onboard ==="
+DRV=$(curl -s -X POST $BASE/drivers \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ahmed Khan","email":"ahmed@test.com","phone":"03007654321","age":28,"gender":"Male","vehicle":{"make":"Toyota","model":"Corolla","color":"White","plateNumber":"LEA-123","capacity":4,"category":"ECONOMY"}}')
+DRV_ID=$(echo $DRV | grep -o '"_id":"[^"]*"' | head -1 | cut -d'"' -f4)
+echo "DRIVER_ID: $DRV_ID"
+
+echo ""
+echo "=== 3. Verify Driver ==="
+curl -s -X PATCH $BASE/drivers/$DRV_ID/verification \
+  -H "Content-Type: application/json" \
+  -d '{"verificationStatus":"VERIFIED"}'
+echo " (VERIFIED)"
+
+echo ""
+echo "=== 4. Driver Available ==="
+curl -s -X PATCH $BASE/drivers/$DRV_ID/status \
+  -H "Content-Type: application/json" \
+  -d '{"status":"AVAILABLE"}'
+echo " (AVAILABLE)"
+
+echo ""
+echo "=== 5. Update Location ==="
+curl -s -X PATCH $BASE/drivers/$DRV_ID/location \
+  -H "Content-Type: application/json" \
+  -d '{"lat":24.8607,"lng":67.0011}'
+echo " (LOCATION UPDATED)"
+
+echo ""
+echo "=== 6. Request Ride ==="
+RIDE=$(curl -s -X POST $BASE/rides \
+  -H "Content-Type: application/json" \
+  -d "{\"passengerId\":\"$PASS_ID\",\"pickupLocation\":{\"lat\":24.8607,\"lng\":67.0011,\"address\":\"Rashid Minhas\"},\"destination\":{\"lat\":24.8918,\"lng\":67.0297,\"address\":\"DHA Phase 2\"},\"rideType\":\"ECONOMY\"}")
+RIDE_ID=$(echo $RIDE | grep -o '"_id":"[^"]*"' | head -1 | cut -d'"' -f4)
+echo "RIDE_ID: $RIDE_ID"
+echo "Fare: $(echo $RIDE | grep -o '"total":[0-9]*')"
+
+echo ""
+echo "=== 7. Accept Ride ==="
+curl -s -X PATCH $BASE/rides/$RIDE_ID/accept \
+  -H "Content-Type: application/json" \
+  -d "{\"driverId\":\"$DRV_ID\"}"
+echo " (ACCEPTED)"
+
+echo ""
+echo "=== 8. Arriving ==="
+curl -s -X PATCH $BASE/rides/$RIDE_ID/arriving \
+  -H "Content-Type: application/json" \
+  -d "{\"driverId\":\"$DRV_ID\"}"
+echo " (ARRIVING)"
+
+echo ""
+echo "=== 9. Start Ride ==="
+curl -s -X PATCH $BASE/rides/$RIDE_ID/start \
+  -H "Content-Type: application/json" \
+  -d "{\"driverId\":\"$DRV_ID\"}"
+echo " (STARTED)"
+
+echo ""
+echo "=== 10. Complete Ride ==="
+curl -s -X PATCH $BASE/rides/$RIDE_ID/complete \
+  -H "Content-Type: application/json" \
+  -d "{\"driverId\":\"$DRV_ID\"}"
+echo " (COMPLETED)"
+
+echo ""
+echo "=== 11. Submit Rating ==="
+curl -s -X POST $BASE/ratings \
+  -H "Content-Type: application/json" \
+  -d "{\"rideId\":\"$RIDE_ID\",\"raterType\":\"PASSENGER\",\"fromUserId\":\"$PASS_ID\",\"toUserId\":\"$DRV_ID\",\"rating\":5,\"review\":\"Great ride!\"}"
+echo " (RATED)"
+
+echo ""
+echo "=== 12. History ==="
+curl -s $BASE/rides/history/passenger/$PASS_ID | grep -o '"totalSpending":[0-9]*'
+curl -s $BASE/rides/history/driver/$DRV_ID | grep -o '"totalEarnings":[0-9]*'
+
+echo ""
+echo "✅ DONE! Full lifecycle tested successfully."
+===================================================================
+
+YEH SCRIPT CHALANE KE LIYE:
+  chmod +x /tmp/full-test.sh
+  bash /tmp/full-test.sh
+
+===================================================================
+WEBSOCKET AUTO SCRIPT (NODE.JS)
+===================================================================
+/tmp/ws-full-test.js file banao:
+
+const io = require("socket.io-client");
+
+const DRIVER_ID = process.argv[2] || "DRIVER_ID_YAHAN_DALO";
+const RIDE_ID = process.argv[3] || "RIDE_ID_YAHAN_DALO";
+
+if (!DRIVER_ID || !RIDE_ID || DRIVER_ID === "DRIVER_ID_YAHAN_DALO") {
+  console.error("Usage: node ws-full-test.js DRIVER_ID RIDE_ID");
+  process.exit(1);
+}
+
+const socket = io("http://localhost:3010/realtime");
+
+socket.on("connect", () => {
+  console.log("✅ WebSocket Connected");
+
+  // 1. Driver register
+  socket.emit("driver:register", { driverId: DRIVER_ID });
+  console.log("✅ driver:register sent");
+
+  // 2. Join ride room
+  socket.emit("ride:join", { rideId: RIDE_ID });
+  console.log("✅ ride:join sent");
+
+  // 3. Simulate GPS location stream
+  let lat = 24.8607;
+  setInterval(() => {
+    lat += 0.0001;
+    socket.emit("driver:location", {
+      driverId: DRIVER_ID,
+      rideId: RIDE_ID,
+      lat: lat,
+      lng: 67.0011
+    });
+  }, 3000);
+});
+
+socket.on("ride:offer", (data) => {
+  console.log("\n📩 ride:offer received!");
+  console.log("   Ride ID:", data.rideId);
+  console.log("   Fare:", data.estimatedFare);
+  console.log("   Distance:", data.estimatedDistanceKm, "km");
+});
+
+socket.on("ride:accepted", (data) => {
+  console.log("\n📩 ride:accepted →", data);
+});
+
+socket.on("ride:status", (data) => {
+  console.log("\n📩 ride:status →", data);
+});
+
+socket.on("ride:completed", (data) => {
+  console.log("\n📩 ride:completed →", data);
+});
+
+socket.on("ride:cancelled", (data) => {
+  console.log("\n📩 ride:cancelled → By:", data.cancelledBy);
+});
+
+socket.on("ride:expired", (data) => {
+  console.log("\n📩 ride:expired →", data);
+});
+
+socket.on("disconnect", () => {
+  console.log("❌ WebSocket Disconnected");
+});
+
+socket.on("connect_error", (err) => {
+  console.error("❌ Connection Error:", err.message);
+});
+===================================================================
+
+CHALANE KA TARIQA:
+  node /tmp/ws-full-test.js DRIVER_ID RIDE_ID
+
+YEH HAR 3 SECOND ME DRIVER LOCATION UPDATE BEJEGA (REAL GPS SIMULATION)
+
+===================================================================
